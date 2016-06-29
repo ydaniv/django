@@ -14,7 +14,7 @@ This document contains all the API references of :class:`Field` including the
 
     If the built-in fields don't do the trick, you can try `django-localflavor
     <https://github.com/django/django-localflavor>`_ (`documentation
-    <https://django-localflavor.readthedocs.org/>`_), which contains assorted
+    <https://django-localflavor.readthedocs.io/>`_), which contains assorted
     pieces of code that are useful for particular countries and cultures.
 
     Also, you can easily :doc:`write your own custom model fields
@@ -112,9 +112,11 @@ define a suitably-named constant for each value::
             (JUNIOR, 'Junior'),
             (SENIOR, 'Senior'),
         )
-        year_in_school = models.CharField(max_length=2,
-                                          choices=YEAR_IN_SCHOOL_CHOICES,
-                                          default=FRESHMAN)
+        year_in_school = models.CharField(
+            max_length=2,
+            choices=YEAR_IN_SCHOOL_CHOICES,
+            default=FRESHMAN,
+        )
 
         def is_upperclass(self):
             return self.year_in_school in (self.JUNIOR, self.SENIOR)
@@ -490,6 +492,12 @@ optional arguments:
     for "last-modified" timestamps. Note that the current date is *always*
     used; it's not just a default value that you can override.
 
+    The field is only automatically updated when calling :meth:`Model.save()
+    <django.db.models.Model.save>`. The field isn't updated when making updates
+    to other fields in other ways such as :meth:`QuerySet.update()
+    <django.db.models.query.QuerySet.update>`, though you can specify a custom
+    value for the field in an update like that.
+
 .. attribute:: DateField.auto_now_add
 
     Automatically set the field to now when the object is first created. Useful
@@ -754,9 +762,36 @@ can change the maximum length using the :attr:`~CharField.max_length` argument.
 
 When you access a :class:`~django.db.models.FileField` on a model, you are
 given an instance of :class:`FieldFile` as a proxy for accessing the underlying
-file. In addition to the functionality inherited from
-:class:`django.core.files.File`, this class has several attributes and methods
-that can be used to interact with file data:
+file.
+
+The API of :class:`FieldFile` mirrors that of :class:`~django.core.files.File`,
+with one key difference: *The object wrapped by the class is not necessarily a
+wrapper around Python's built-in file object.* Instead, it is a wrapper around
+the result of the :attr:`Storage.open()<django.core.files.storage.Storage.open>`
+method, which may be a :class:`~django.core.files.File` object, or it may be a
+custom storage's implementation of the :class:`~django.core.files.File` API.
+
+In addition to the API inherited from
+:class:`~django.core.files.File` such as :meth:`~django.core.files.File.read`
+and :meth:`~django.core.files.File.write`, :class:`FieldFile` includes several
+methods that can be used to interact with the underlying file:
+
+.. warning::
+
+    Two methods of this class, :meth:`~FieldFile.save` and
+    :meth:`~FieldFile.delete`, default to saving the model object of the
+    associated ``FieldFile`` in the database.
+
+.. attribute:: FieldFile.name
+
+The name of the file including the relative path from the root of the
+:class:`~django.core.files.storage.Storage` of the associated
+:class:`~django.db.models.FileField`.
+
+.. attribute:: FieldFile.size
+
+The result of the underlying :attr:`Storage.size()
+<django.core.files.storage.Storage.size>` method.
 
 .. attribute:: FieldFile.url
 
@@ -766,8 +801,13 @@ A read-only property to access the file's relative URL by calling the
 
 .. method:: FieldFile.open(mode='rb')
 
-Behaves like the standard Python ``open()`` method and opens the file
-associated with this instance in the mode specified by ``mode``.
+Opens or reopens the file associated with this instance in the specified
+``mode``. Unlike the standard Python ``open()`` method, it doesn't return a
+file descriptor.
+
+Since the underlying file is opened implicitly when accessing it, it may be
+unnecessary to call this method except to reset the pointer to the underlying
+file or to change the ``mode``.
 
 .. method:: FieldFile.close()
 
@@ -923,7 +963,7 @@ optional arguments:
 
 Requires the `Pillow`_ library.
 
-.. _Pillow: https://pillow.readthedocs.org/en/latest/
+.. _Pillow: https://pillow.readthedocs.io/en/latest/
 
 :class:`ImageField` instances are created in your database as ``varchar``
 columns with a default max length of 100 characters. As with other fields, you
@@ -1154,6 +1194,35 @@ you can use the name of the model, rather than the model object itself::
     class Manufacturer(models.Model):
         # ...
         pass
+
+Relationships defined this way on :ref:`abstract models
+<abstract-base-classes>` are resolved when the model is subclassed as a
+concrete model and are not relative to the abstract model's ``app_label``:
+
+.. snippet::
+    :filename: products/models.py
+
+    from django.db import models
+
+    class AbstractCar(models.Model):
+        manufacturer = models.ForeignKey('Manufacturer', on_delete=models.CASCADE)
+
+        class Meta:
+            abstract = True
+
+.. snippet::
+    :filename: production/models.py
+
+    from django.db import models
+    from products.models import AbstractCar
+
+    class Manufacturer(models.Model):
+        pass
+
+    class Car(AbstractCar):
+        pass
+
+    # Car.manufacturer will point to `production.Manufacturer` here.
 
 To refer to models defined in another application, you can explicitly specify
 a model with the full application label. For example, if the ``Manufacturer``

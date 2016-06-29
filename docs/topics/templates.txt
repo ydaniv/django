@@ -309,6 +309,11 @@ templates, Django provides a shortcut function which automates the process.
 
             The ``request`` argument was added.
 
+    Usage example::
+
+        from django.template.loader import render_to_string
+        rendered = render_to_string('my_template.html', {'foo': 'bar'})
+
 See also the :func:`~django.shortcuts.render()` shortcut which calls
 :func:`render_to_string()` and feeds the result into an
 :class:`~django.http.HttpResponse` suitable for returning from a view.
@@ -456,10 +461,13 @@ adds defaults that differ from Jinja2's for a few options:
 * ``'auto_reload'``: ``settings.DEBUG``
 * ``'undefined'``: ``DebugUndefined if settings.DEBUG else Undefined``
 
-The default configuration is purposefully kept to a minimum. The ``Jinja2``
-backend doesn't create a Django-flavored environment. It doesn't know about
-Django context processors, filters, and tags. In order to use Django-specific
-APIs, you must configure them into the environment.
+The default configuration is purposefully kept to a minimum. If a template is
+rendered with a request (e.g. when using :py:func:`~django.shortcuts.render`),
+the ``Jinja2`` backend adds the globals ``request``, ``csrf_input``, and
+``csrf_token`` to the context. Apart from that, this backend doesn't create a
+Django-flavored environment. It doesn't know about Django context processors,
+filters, and tags. In order to use Django-specific APIs, you must configure
+them into the environment.
 
 For example, you can create ``myproject/jinja2.py`` with this content::
 
@@ -844,5 +852,5 @@ Django provides many :ref:`built-in context processors <context-processors>`.
 Implementing a custom context processor is as simple as defining a function.
 
 .. _Jinja2: http://jinja.pocoo.org/
-.. _DEP 182: https://github.com/django/deps/blob/master/accepted/0182-multiple-template-engines.rst
+.. _DEP 182: https://github.com/django/deps/blob/master/final/0182-multiple-template-engines.rst
 .. _Django Debug Toolbar: https://github.com/django-debug-toolbar/django-debug-toolbar

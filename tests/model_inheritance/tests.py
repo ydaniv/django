@@ -2,9 +2,10 @@ from __future__ import unicode_literals
 
 from operator import attrgetter
 
+from django.apps.registry import Apps
 from django.core.exceptions import FieldError, ValidationError
 from django.core.management import call_command
-from django.db import connection
+from django.db import connection, models
 from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import six
@@ -130,6 +131,26 @@ class ModelInheritanceTests(TestCase):
         m = MixinModel()
         self.assertEqual(m.other_attr, 1)
 
+    def test_abstract_parent_link(self):
+        test_apps = Apps(['model_inheritance'])
+
+        class A(models.Model):
+            class Meta:
+                apps = test_apps
+
+        class B(A):
+            a = models.OneToOneField('A', parent_link=True, on_delete=models.CASCADE)
+
+            class Meta:
+                apps = test_apps
+                abstract = True
+
+        class C(B):
+            class Meta:
+                apps = test_apps
+
+        self.assertIs(C._meta.parents[A], C._meta.get_field('a'))
+
 
 class ModelInheritanceDataTests(TestCase):
     @classmethod
@@ -226,10 +247,8 @@ class ModelInheritanceDataTests(TestCase):
 
     def test_inherited_multiple_objects_returned_exception(self):
         # MultipleObjectsReturned is also inherited.
-        self.assertRaises(
-            Place.MultipleObjectsReturned,
-            Restaurant.objects.get, id__lt=12321
-        )
+        with self.assertRaises(Place.MultipleObjectsReturned):
+            Restaurant.objects.get()
 
     def test_related_objects_for_inherited_models(self):
         # Related objects work just as they normally do.

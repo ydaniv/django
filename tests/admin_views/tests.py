@@ -1290,8 +1290,21 @@ def get_perm(Model, perm):
     return Permission.objects.get(content_type=ct, codename=perm)
 
 
-@override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.SHA1PasswordHasher'],
-    ROOT_URLCONF="admin_views.urls")
+@override_settings(
+    PASSWORD_HASHERS=['django.contrib.auth.hashers.SHA1PasswordHasher'],
+    ROOT_URLCONF='admin_views.urls',
+    # Test with the admin's documented list of required context processors.
+    TEMPLATES=[{
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    }],
+)
 class AdminViewPermissionsTest(TestCase):
     """Tests for Admin Views Permissions."""
 
@@ -4666,6 +4679,23 @@ class SeleniumAdminViewsFirefoxTests(AdminSeleniumWebDriverTestCase):
         uuid_id = str(ParentWithUUIDPK.objects.first().id)
         self.assertEqual(select.first_selected_option.text, uuid_id)
         self.assertEqual(select.first_selected_option.get_attribute('value'), uuid_id)
+
+    def test_list_editable_raw_id_fields(self):
+        parent = ParentWithUUIDPK.objects.create(title='test')
+        parent2 = ParentWithUUIDPK.objects.create(title='test2')
+        RelatedWithUUIDPKModel.objects.create(parent=parent)
+        self.admin_login(username='super', password='secret', login_url=reverse('admin:index'))
+        change_url = reverse('admin:admin_views_relatedwithuuidpkmodel_changelist', current_app=site2.name)
+        self.selenium.get(self.live_server_url + change_url)
+        self.selenium.find_element_by_id('lookup_id_form-0-parent').click()
+        self.wait_for_popup()
+        self.selenium.switch_to.window(self.selenium.window_handles[-1])
+        # Select "parent2" in the popup.
+        self.selenium.find_element_by_link_text(str(parent2.pk)).click()
+        self.selenium.switch_to.window(self.selenium.window_handles[0])
+        # The newly selected pk should appear in the raw id input.
+        value = self.selenium.find_element_by_id('id_form-0-parent').get_attribute('value')
+        self.assertEqual(value, str(parent2.pk))
 
 
 class SeleniumAdminViewsChromeTests(SeleniumAdminViewsFirefoxTests):

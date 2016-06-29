@@ -94,7 +94,7 @@ Add ``django.contrib.gis`` to :setting:`INSTALLED_APPS`
 
 Like other Django contrib applications, you will *only* need to add
 :mod:`django.contrib.gis` to :setting:`INSTALLED_APPS` in your settings.
-This is the so that ``gis`` templates can be located -- if not done, then
+This is so that the ``gis`` templates can be located -- if not done, then
 features such as the geographic admin or KML sitemaps will not function properly.
 
 Troubleshooting
@@ -327,7 +327,7 @@ Fink
 of the `Fink`__ package system. `Different packages are available`__ (starting
 with "django-gis"), depending on which version of Python you want to use.
 
-__ http://schwehr.org/blog/
+__ https://schwehr.blogspot.com/
 __ http://www.finkproject.org/
 __ http://pdb.finkproject.org/pdb/browse.php?summary=django-gis
 

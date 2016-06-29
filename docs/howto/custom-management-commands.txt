@@ -49,7 +49,7 @@ To implement the command, edit ``polls/management/commands/closepoll.py`` to
 look like this::
 
     from django.core.management.base import BaseCommand, CommandError
-    from polls.models import Poll
+    from polls.models import Question as Poll
 
     class Command(BaseCommand):
         help = 'Closes the specified poll for voting'
@@ -98,8 +98,8 @@ The new custom command can be called using ``python manage.py closepoll
 The ``handle()`` method takes one or more ``poll_ids`` and sets ``poll.opened``
 to ``False`` for each one. If the user referenced any nonexistent polls, a
 :exc:`CommandError` is raised. The ``poll.opened`` attribute does not exist in
-the :doc:`tutorial</intro/tutorial01>` and was added to ``polls.models.Poll``
-for this example.
+the :doc:`tutorial</intro/tutorial01>` and was added to
+``polls.models.Question`` for this example.
 
 .. _custom-commands-options:
 
@@ -116,11 +116,13 @@ options can be added in the :meth:`~BaseCommand.add_arguments` method like this:
             parser.add_argument('poll_id', nargs='+', type=int)
 
             # Named (optional) arguments
-            parser.add_argument('--delete',
+            parser.add_argument(
+                '--delete',
                 action='store_true',
                 dest='delete',
                 default=False,
-                help='Delete poll instead of closing it')
+                help='Delete poll instead of closing it',
+            )
 
         def handle(self, *args, **options):
             # ...

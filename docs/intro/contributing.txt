@@ -188,7 +188,7 @@ If the ``source`` command is not available, you can try using a dot instead:
 You have to activate the virtualenv whenever you open a new terminal window.
 virtualenvwrapper__ is a useful tool for making this more convenient.
 
-__ https://virtualenvwrapper.readthedocs.org/en/latest/
+__ https://virtualenvwrapper.readthedocs.io/en/latest/
 
 Anything you install through ``pip`` from now on will be installed in your new
 virtualenv, isolated from other environments and system-wide packages. Also, the
@@ -279,7 +279,9 @@ Once the tests complete, you should be greeted with a message informing you
 whether the test suite passed or failed. Since you haven't yet made any changes
 to Django's code, the entire test suite **should** pass. If you get failures or
 errors make sure you've followed all of the previous steps properly. See
-:ref:`running-unit-tests` for more information.
+:ref:`running-unit-tests` for more information. If you're using Python 3.5+,
+there will be a couple failures related to deprecation warnings that you can
+ignore. These failures have since been fixed in Django.
 
 Note that the latest Django trunk may not always be stable. When developing
 against trunk, you can check `Django's continuous integration builds`__ to
@@ -370,10 +372,9 @@ that passing a ``prefix`` parameter when creating an instance still works too.
     * Dive Into Python (a free online book for beginning Python developers)
       includes a great `introduction to Unit Testing`__.
     * After reading those, if you want something a little meatier to sink
-      your teeth into, there's always the `Python unittest documentation`__.
+      your teeth into, there's always the Python :mod:`unittest` documentation.
 
 __ http://www.diveintopython.net/unit_testing/index.html
-__ https://docs.python.org/library/unittest.html
 
 Running your new test
 ---------------------

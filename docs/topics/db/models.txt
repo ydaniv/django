@@ -170,10 +170,10 @@ ones:
         )
 
     The first element in each tuple is the value that will be stored in the
-    database, the second element will be displayed by the default form widget
-    or in a ModelChoiceField. Given an instance of a model object, the
-    display value for a choices field can be accessed using the
-    ``get_FOO_display`` method. For example::
+    database. The second element will be displayed by the default form widget
+    or in a :class:`~django.forms.ModelChoiceField`. Given a model instance,
+    the display value for a choices field can be accessed using the
+    ``get_FOO_display()`` method. For example::
 
         from django.db import models
 
@@ -1248,8 +1248,8 @@ possible.
 
 .. _proxy-vs-unmanaged-models:
 
-Differences between proxy inheritance and  unmanaged models
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Differences between proxy inheritance and unmanaged models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Proxy model inheritance might look fairly similar to creating an unmanaged
 model, using the :attr:`~django.db.models.Options.managed` attribute on a
@@ -1365,6 +1365,30 @@ different database tables).
 
 Django will raise a :exc:`~django.core.exceptions.FieldError` if you override
 any model field in any ancestor model.
+
+Organizing models in a package
+==============================
+
+The :djadmin:`manage.py startapp <startapp>` command creates an application
+structure that includes a ``models.py`` file. If you have many models,
+organizing them in separate files may be useful.
+
+To do so, create a ``models`` package. Remove ``models.py`` and create a
+``myapp/models/`` directory with an ``__init__.py`` file and the files to
+store your models. You must import the models in the ``__init__.py`` file.
+
+For example, if you had ``organic.py`` and ``synthetic.py`` in the ``models``
+directory:
+
+.. snippet::
+    :filename: myapp/models/__init__.py
+
+    from .organic import Person
+    from .synthetic import Robot
+
+Explicitly importing each model rather than using ``from .models import *``
+has the advantages of not cluttering the namespace, making code more readable,
+and keeping code analysis tools useful.
 
 .. seealso::
 

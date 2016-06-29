@@ -1349,8 +1349,9 @@ n                 Month without leading zeros.              ``'1'`` to ``'12'``
 N                 Month abbreviation in Associated Press    ``'Jan.'``, ``'Feb.'``, ``'March'``, ``'May'``
                   style. Proprietary extension.
 o                 ISO-8601 week-numbering year,             ``'1999'``
-                  corresponding to
-                  the ISO-8601 week number (W)
+                  corresponding to the ISO-8601 week
+                  number (W) which uses leap weeks. See Y
+                  for the more common year format.
 O                 Difference to Greenwich time in hours.    ``'+0200'``
 P                 Time, in 12-hour hours, minutes and       ``'1 a.m.'``, ``'1:30 p.m.'``, ``'midnight'``, ``'noon'``, ``'12:30 p.m.'``
                   'a.m.'/'p.m.', with minutes left off
@@ -1944,7 +1945,7 @@ removetags
     ``removetags`` cannot guarantee HTML safe output and has been deprecated due
     to security concerns. Consider using `bleach`_ instead.
 
-.. _bleach: http://bleach.readthedocs.org/en/latest/
+.. _bleach: https://bleach.readthedocs.io/en/latest/
 
 Removes a space-separated list of [X]HTML tags from the output.
 
@@ -2054,11 +2055,8 @@ If ``value`` is ``"Joel is a slug"``, the output will be ``"joel-is-a-slug"``.
 ----------------
 
 Formats the variable according to the argument, a string formatting specifier.
-This specifier uses Python string formatting syntax, with the exception that
-the leading "%" is dropped.
-
-See https://docs.python.org/library/stdtypes.html#string-formatting-operations
-for documentation of Python string formatting
+This specifier uses the :ref:`old-string-formatting` syntax, with the exception
+that the leading "%" is dropped.
 
 For example::
 
@@ -2088,7 +2086,7 @@ output will be ``"Joel is a slug"``.
     more robust, you can use the ``bleach`` Python library, notably its
     `clean`_ method.
 
-.. _clean: https://bleach.readthedocs.org/en/latest/clean.html
+.. _clean: https://bleach.readthedocs.io/en/latest/clean.html
 
 .. templatefilter:: time
 

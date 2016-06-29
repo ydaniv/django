@@ -138,12 +138,15 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'sphinx': ('http://sphinx-doc.org/', None),
     'six': ('https://pythonhosted.org/six/', None),
-    'formtools': ('http://django-formtools.readthedocs.org/en/latest/', None),
+    'formtools': ('https://django-formtools.readthedocs.io/en/latest/', None),
     'psycopg2': ('http://initd.org/psycopg/docs/', None),
 }
 
 # Python's docs don't change every week.
 intersphinx_cache_limit = 90  # days
+
+# The 'versionadded' and 'versionchanged' directives are overridden.
+suppress_warnings = ['app.add_directive']
 
 # -- Options for HTML output ---------------------------------------------------
 

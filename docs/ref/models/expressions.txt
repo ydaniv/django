@@ -92,7 +92,7 @@ makes it possible to refer to model field values and perform  database
 operations using them without actually having to pull them out of the  database
 into Python memory.
 
-Instead, Django uses the ``F()`` object to generate a SQL expression that
+Instead, Django uses the ``F()`` object to generate an SQL expression that
 describes the required operation at the database level.
 
 This is easiest to understand through an example. Normally, one might do
@@ -173,6 +173,22 @@ If the database is responsible for updating the field, the process is more
 robust: it will only ever update the field based on the value of the field in
 the database when the :meth:`~Model.save()` or ``update()`` is executed, rather
 than based on its value when the instance was retrieved.
+
+``F()`` assignments persist after ``Model.save()``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``F()`` objects assigned to model fields persist after saving the model
+instance and will be applied on each :meth:`~Model.save()`. For example::
+
+    reporter = Reporters.objects.get(name='Tintin')
+    reporter.stories_filed = F('stories_filed') + 1
+    reporter.save()
+
+    reporter.name = 'Tintin Jr.'
+    reporter.save()
+
+``stories_filed`` will be updated twice in this case. If it's initially ``1``,
+the final value will be ``3``.
 
 Using ``F()`` in filters
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -353,7 +369,8 @@ SQL that is generated. Here's a brief example::
                 expression,
                 distinct='DISTINCT ' if distinct else '',
                 output_field=IntegerField(),
-                **extra)
+                **extra
+            )
 
 
 ``Value()`` expressions
@@ -460,7 +477,7 @@ calling the appropriate methods on the wrapped expression.
         Tells Django that this expression contains an aggregate and that a
         ``GROUP BY`` clause needs to be added to the query.
 
-    .. method:: resolve_expression(query=None, allow_joins=True, reuse=None, summarize=False)
+    .. method:: resolve_expression(query=None, allow_joins=True, reuse=None, summarize=False, for_save=False)
 
         Provides the chance to do any pre-processing or validation of
         the expression before it's added to the query. ``resolve_expression()``
@@ -591,11 +608,11 @@ Now we implement the pre-processing and validation. Since we do not have
 any of our own validation at this point, we just delegate to the nested
 expressions::
 
-    def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False):
+    def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):
         c = self.copy()
         c.is_summary = summarize
         for pos, expression in enumerate(self.expressions):
-            c.expressions[pos] = expression.resolve_expression(query, allow_joins, reuse, summarize)
+            c.expressions[pos] = expression.resolve_expression(query, allow_joins, reuse, summarize, for_save)
         return c
 
 Next, we write the method responsible for generating the SQL::

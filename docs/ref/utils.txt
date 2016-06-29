@@ -21,8 +21,7 @@ managing the ``Vary`` header of responses. It includes functions to patch the
 header of response objects directly and decorators that change functions to do
 that header-patching themselves.
 
-For information on the ``Vary`` header, see :rfc:`2616#section-14.44` section
-14.44.
+For information on the ``Vary`` header, see :rfc:`7231#section-7.1.4`.
 
 Essentially, the ``Vary`` HTTP header defines which headers a cache should take
 into account when building its cache key. Requests with the same path but
@@ -157,7 +156,7 @@ The functions defined in this module share the following properties:
     decorate methods or classes; in the latter case, ``name`` is the name
     of the method to be decorated and is required.
 
-    ``decorator`` may also be a a list or tuple of functions. They are wrapped
+    ``decorator`` may also be a list or tuple of functions. They are wrapped
     in reverse order so that the call order is the order in which the functions
     appear in the list/tuple.
 
@@ -324,7 +323,7 @@ Sample usage::
     >>> feed.add_item(
     ...     title="Hello",
     ...     link="http://www.holovaty.com/test/",
-    ...     description="Testing."
+    ...     description="Testing.",
     ... )
     >>> with open('test.rss', 'w') as fp:
     ...     feed.write(fp, 'utf-8')
@@ -591,32 +590,36 @@ escaping HTML.
 
 .. function:: format_html(format_string, *args, **kwargs)
 
-    This is similar to `str.format`_, except that it is appropriate for
+    This is similar to :meth:`str.format`, except that it is appropriate for
     building up HTML fragments. All args and kwargs are passed through
-    :func:`conditional_escape` before being passed to ``str.format``.
+    :func:`conditional_escape` before being passed to ``str.format()``.
 
     For the case of building up small HTML fragments, this function is to be
-    preferred over string interpolation using ``%`` or ``str.format`` directly,
-    because it applies escaping to all arguments - just like the Template system
-    applies escaping by default.
+    preferred over string interpolation using ``%`` or ``str.format()``
+    directly, because it applies escaping to all arguments - just like the
+    template system applies escaping by default.
 
     So, instead of writing::
 
-        mark_safe("%s <b>%s</b> %s" % (some_html,
-                                        escape(some_text),
-                                        escape(some_other_text),
-                                        ))
+        mark_safe("%s <b>%s</b> %s" % (
+            some_html,
+            escape(some_text),
+            escape(some_other_text),
+        ))
 
     You should instead use::
 
         format_html("{} <b>{}</b> {}",
-                    mark_safe(some_html), some_text, some_other_text)
+            mark_safe(some_html),
+            some_text,
+            some_other_text,
+        )
 
     This has the advantage that you don't need to apply :func:`escape` to each
     argument and risk a bug and an XSS vulnerability if you forget one.
 
-    Note that although this function uses ``str.format`` to do the
-    interpolation, some of the formatting options provided by `str.format`_
+    Note that although this function uses ``str.format()`` to do the
+    interpolation, some of the formatting options provided by ``str.format()``
     (e.g. number formatting) will not work, since all arguments are passed
     through :func:`conditional_escape` which (ultimately) calls
     :func:`~django.utils.encoding.force_text` on the values.
@@ -631,8 +634,10 @@ escaping HTML.
     ``args_generator`` should be an iterator that returns the sequence of
     ``args`` that will be passed to :func:`format_html`. For example::
 
-        format_html_join('\n', "<li>{} {}</li>", ((u.first_name, u.last_name)
-                                                    for u in users))
+        format_html_join(
+            '\n', "<li>{} {}</li>",
+            ((u.first_name, u.last_name) for u in users)
+        )
 
 .. function:: strip_tags(value)
 
@@ -739,7 +744,7 @@ escaping HTML.
 .. function:: http_date(epoch_seconds=None)
 
     Formats the time to match the :rfc:`1123` date format as specified by HTTP
-    :rfc:`2616#section-3.3.1` section 3.3.1.
+    :rfc:`7231#section-7.1.1.1`.
 
     Accepts a floating point number expressed in seconds since the epoch in
     UTC--such as that outputted by ``time.time()``. If set to ``None``,

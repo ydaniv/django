@@ -250,9 +250,11 @@ in ``myapp``::
     from django.contrib.contenttypes.models import ContentType
 
     content_type = ContentType.objects.get_for_model(BlogPost)
-    permission = Permission.objects.create(codename='can_publish',
-                                           name='Can Publish Posts',
-                                           content_type=content_type)
+    permission = Permission.objects.create(
+        codename='can_publish',
+        name='Can Publish Posts',
+        content_type=content_type,
+    )
 
 The permission can then be assigned to a
 :class:`~django.contrib.auth.models.User` via its ``user_permissions``
@@ -285,6 +287,7 @@ the ``User`` from the database. For example::
         user.has_perm('myapp.change_bar')  # False
 
         # Request new instance of User
+        # Be aware that user.refresh_from_db() won't clear the cache.
         user = get_object_or_404(User, pk=user_id)
 
         # Permission cache is repopulated from the database
@@ -718,8 +721,8 @@ The ``permission_required`` decorator
 
         from django.contrib.auth.decorators import login_required, permission_required
 
-        @permission_required('polls.can_vote', raise_exception=True)
         @login_required
+        @permission_required('polls.can_vote', raise_exception=True)
         def my_view(request):
             ...
 
@@ -925,7 +928,7 @@ easiest way is to include the provided URLconf in ``django.contrib.auth.urls``
 in your own URLconf, for example::
 
     urlpatterns = [
-        url('^', include('django.contrib.auth.urls'))
+        url('^', include('django.contrib.auth.urls')),
     ]
 
 This will include the following URL patterns::
@@ -948,7 +951,7 @@ your URLconf::
     from django.contrib.auth import views as auth_views
 
     urlpatterns = [
-        url('^change-password/', auth_views.password_change)
+        url('^change-password/$', auth_views.password_change),
     ]
 
 The views have optional arguments you can use to alter the behavior of the
@@ -958,10 +961,10 @@ arguments in the URLconf, these will be passed on to the view. For example::
 
     urlpatterns = [
         url(
-            '^change-password/',
+            '^change-password/$',
             auth_views.password_change,
             {'template_name': 'change-password.html'}
-        )
+        ),
     ]
 
 All views return a :class:`~django.template.response.TemplateResponse`

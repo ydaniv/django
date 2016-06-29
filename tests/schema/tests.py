@@ -27,8 +27,8 @@ from .fields import (
 from .models import (
     Author, AuthorWithDefaultHeight, AuthorWithEvenLongerName, Book,
     BookForeignObj, BookWeak, BookWithLongName, BookWithO2O, BookWithoutAuthor,
-    BookWithSlug, IntegerPK, Note, NoteRename, Tag, TagIndexed, TagM2MTest,
-    TagUniqueRename, Thing, UniqueTest, new_apps,
+    BookWithSlug, IntegerPK, Node, Note, NoteRename, Tag, TagIndexed,
+    TagM2MTest, TagUniqueRename, Thing, UniqueTest, new_apps,
 )
 
 
@@ -1569,7 +1569,7 @@ class SchemaTests(TransactionTestCase):
                 editor.create_model(Thing)
             except OperationalError as e:
                 self.fail("Errors when applying initial migration for a model "
-                          "with a table named after a SQL reserved word: %s" % e)
+                          "with a table named after an SQL reserved word: %s" % e)
         # Check that it's there
         list(Thing.objects.all())
         # Clean up that table
@@ -1778,15 +1778,14 @@ class SchemaTests(TransactionTestCase):
             self.get_constraints_for_column(BookWithoutAuthor, 'title'),
             ['schema_book_d5d3db17', 'schema_book_title_2dfb2dff_like', 'schema_book_title_2dfb2dff_uniq']
         )
-        # Alter to remove unique=True (should drop unique index) # XXX: bug!
-        old_field = BookWithoutAuthor._meta.get_field('title')
-        new_field = CharField(max_length=100, db_index=True)
-        new_field.set_attributes_from_name('title')
+        # Alter to remove unique=True (should drop unique index)
+        new_field2 = CharField(max_length=100, db_index=True)
+        new_field2.set_attributes_from_name('title')
         with connection.schema_editor() as editor:
-            editor.alter_field(BookWithoutAuthor, old_field, new_field, strict=True)
+            editor.alter_field(BookWithoutAuthor, new_field, new_field2, strict=True)
         self.assertEqual(
             self.get_constraints_for_column(BookWithoutAuthor, 'title'),
-            ['schema_book_d5d3db17', 'schema_book_title_2dfb2dff_like', 'schema_book_title_2dfb2dff_uniq']
+            ['schema_book_d5d3db17', 'schema_book_title_2dfb2dff_like']
         )
 
     @unittest.skipUnless(connection.vendor == 'postgresql', "PostgreSQL specific")
@@ -1809,12 +1808,24 @@ class SchemaTests(TransactionTestCase):
             ['schema_tag_slug_2c418ba3_like', 'schema_tag_slug_key']
         )
         # Alter to remove db_index=True
-        old_field = Tag._meta.get_field('slug')
-        new_field = SlugField(unique=True)
-        new_field.set_attributes_from_name('slug')
+        new_field2 = SlugField(unique=True)
+        new_field2.set_attributes_from_name('slug')
         with connection.schema_editor() as editor:
-            editor.alter_field(Tag, old_field, new_field, strict=True)
+            editor.alter_field(Tag, new_field, new_field2, strict=True)
         self.assertEqual(
             self.get_constraints_for_column(Tag, 'slug'),
             ['schema_tag_slug_2c418ba3_like', 'schema_tag_slug_key']
         )
+
+    def test_alter_pk_with_self_referential_field(self):
+        """
+        Changing the primary key field name of a model with a self-referential
+        foreign key (#26384).
+        """
+        if connection.vendor == 'mysql' and connection.mysql_version < (5, 6, 6):
+            self.skipTest('Skip known bug renaming primary keys on older MySQL versions (#24995).')
+        old_field = Node._meta.get_field('node_id')
+        new_field = AutoField(primary_key=True)
+        new_field.set_attributes_from_name('id')
+        with connection.schema_editor() as editor:
+            editor.alter_field(Node, old_field, new_field)

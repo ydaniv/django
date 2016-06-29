@@ -310,7 +310,7 @@ Use the ``django.test.Client`` class to make requests.
 
     .. method:: Client.delete(path, data='', content_type='application/octet-stream', follow=False, secure=False, **extra)
 
-        Makes an DELETE request on the provided ``path`` and returns a
+        Makes a DELETE request on the provided ``path`` and returns a
         ``Response`` object. Useful for testing RESTful interfaces.
 
         When ``data`` is provided, it is used as the request body, and
@@ -327,8 +327,8 @@ Use the ``django.test.Client`` class to make requests.
         ``Response`` object. Useful for simulating diagnostic probes.
 
         Unlike the other request methods, ``data`` is not provided as a keyword
-        parameter in order to comply with :rfc:`2616`, which mandates that
-        TRACE requests should not have an entity-body.
+        parameter in order to comply with :rfc:`7231#section-4.3.8`, which
+        mandates that TRACE requests must not have a body.
 
         The ``follow``, ``secure``, and ``extra`` arguments act the same as for
         :meth:`Client.get`.
@@ -491,8 +491,10 @@ Specifically, a ``Response`` object has the following attributes:
 
     .. attribute:: status_code
 
-        The HTTP status of the response, as an integer. See
-        :rfc:`2616#section-10` for a full list of HTTP status codes.
+        The HTTP status of the response, as an integer. For a full list
+        of defined codes, see the `IANA status code registry`_.
+
+        .. _IANA status code registry: https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 
     .. attribute:: templates
 
@@ -626,13 +628,18 @@ Normal Python unit test classes extend a base class of
 
    Hierarchy of Django unit testing classes
 
+Converting a normal :class:`unittest.TestCase` to any of the subclasses is
+easy: change the base class of your test from ``unittest.TestCase`` to the
+subclass. All of the standard Python unit test functionality will be available,
+and it will be augmented with some useful additions as described in each
+section below.
+
 ``SimpleTestCase``
 ------------------
 
 .. class:: SimpleTestCase()
 
-A thin subclass of :class:`unittest.TestCase`, it extends it with some basic
-functionality like:
+A subclass of :class:`unittest.TestCase` that adds this functionality:
 
 * Some useful assertions like:
 
@@ -657,17 +664,8 @@ functionality like:
 * Using the :attr:`~SimpleTestCase.client` :class:`~django.test.Client`.
 * Custom test-time :attr:`URL maps <SimpleTestCase.urls>`.
 
-If you need any of the other more complex and heavyweight Django-specific
-features like:
-
-* Testing or using the ORM.
-* Database :attr:`~TransactionTestCase.fixtures`.
-* Test :ref:`skipping based on database backend features <skipping-tests>`.
-* The remaining specialized :meth:`assert*
-  <TransactionTestCase.assertQuerysetEqual>` methods.
-
-then you should use :class:`~django.test.TransactionTestCase` or
-:class:`~django.test.TestCase` instead.
+If your tests make any database queries, use subclasses
+:class:`~django.test.TransactionTestCase` or :class:`~django.test.TestCase`.
 
 .. attribute:: SimpleTestCase.allow_database_queries
 
@@ -679,8 +677,6 @@ then you should use :class:`~django.test.TransactionTestCase` or
     aren't concerned about this problem, you can disable this behavior by
     setting the ``allow_database_queries`` class attribute to ``True`` on
     your test class.
-
-``SimpleTestCase`` inherits from ``unittest.TestCase``.
 
 .. warning::
 
@@ -715,12 +711,23 @@ then you should use :class:`~django.test.TransactionTestCase` or
 
 .. class:: TransactionTestCase()
 
-Django's ``TestCase`` class (described below) makes use of database transaction
-facilities to speed up the process of resetting the database to a known state
-at the beginning of each test. A consequence of this, however, is that some
-database behaviors cannot be tested within a Django ``TestCase`` class. For
-instance, you cannot test that a block of code is executing within a
-transaction, as is required when using
+``TransactionTestCase`` inherits from :class:`~django.test.SimpleTestCase` to
+add some database-specific features:
+
+* Resetting the database to a known state at the beginning of each test to
+  ease testing and using the ORM.
+* Database :attr:`~TransactionTestCase.fixtures`.
+* Test :ref:`skipping based on database backend features <skipping-tests>`.
+* The remaining specialized :meth:`assert*
+  <TransactionTestCase.assertQuerysetEqual>` methods.
+
+Django's :class:`TestCase` class is a more commonly used subclass of
+``TransactionTestCase`` that makes use of database transaction facilities
+to speed up the process of resetting the database to a known state at the
+beginning of each test. A consequence of this, however, is that some database
+behaviors cannot be tested within a Django ``TestCase`` class. For instance,
+you cannot test that a block of code is executing within a transaction, as is
+required when using
 :meth:`~django.db.models.query.QuerySet.select_for_update()`. In those cases,
 you should use ``TransactionTestCase``.
 
@@ -757,31 +764,23 @@ to test the effects of commit and rollback:
   this) you can set ``serialized_rollback = True`` inside the
   ``TestCase`` body.
 
-``TransactionTestCase`` inherits from :class:`~django.test.SimpleTestCase`.
-
 ``TestCase``
 ------------
 
 .. class:: TestCase()
 
-This class provides some additional capabilities that can be useful for testing
-websites.
+This is the most common class to use for writing tests in Django. It inherits
+from :class:`TransactionTestCase` (and by extension :class:`SimpleTestCase`).
+If your Django application doesn't use a database, use :class:`SimpleTestCase`.
 
-Converting a normal :class:`unittest.TestCase` to a Django :class:`TestCase` is
-easy: Just change the base class of your test from ``'unittest.TestCase'`` to
-``'django.test.TestCase'``. All of the standard Python unit test functionality
-will continue to be available, but it will be augmented with some useful
-additions, including:
+The class:
 
-* Automatic loading of fixtures.
+* Wraps the tests within two nested :func:`~django.db.transaction.atomic`
+  blocks: one for the whole class and one for each test. Therefore, if you want
+  to test some specific database transaction behavior, use
+  :class:`TransactionTestCase`.
 
-* Wraps the tests within two nested ``atomic`` blocks: one for the whole class
-  and one for each test.
-
-* Creates a TestClient instance.
-
-* Django-specific assertions for testing for things like redirection and form
-  errors.
+It also provides an additional method:
 
 .. classmethod:: TestCase.setUpTestData()
 
@@ -819,14 +818,6 @@ additions, including:
     at the class level will persist between test methods. If you do need to
     modify them, you could reload them in the ``setUp()`` method with
     :meth:`~django.db.models.Model.refresh_from_db`, for example.
-
-.. warning::
-
-    If you want to test some specific database transaction behavior, you should
-    use ``TransactionTestCase``, as ``TestCase`` wraps test execution within an
-    :func:`~django.db.transaction.atomic()` block.
-
-``TestCase`` inherits from :class:`~django.test.TransactionTestCase`.
 
 .. _live-test-server:
 
@@ -946,7 +937,7 @@ out the `full reference`_ for more details.
 
 .. _Selenium: http://seleniumhq.org/
 .. _selenium package: https://pypi.python.org/pypi/selenium
-.. _full reference: http://selenium-python.readthedocs.org/en/latest/api.html
+.. _full reference: https://selenium-python.readthedocs.io/api.html
 .. _Firefox: https://www.mozilla.com/firefox/
 
 .. note::
@@ -980,7 +971,7 @@ out the `full reference`_ for more details.
     use cases. Please refer to the `Selenium FAQ`_ and
     `Selenium documentation`_ for more information.
 
-    .. _Selenium FAQ: https://code.google.com/p/selenium/wiki/FrequentlyAskedQuestions#Q:_WebDriver_fails_to_find_elements_/_Does_not_block_on_page_loa
+    .. _Selenium FAQ: https://web.archive.org/web/20160129132110/http://code.google.com/p/selenium/wiki/FrequentlyAskedQuestions#Q:_WebDriver_fails_to_find_elements_/_Does_not_block_on_page_loa
     .. _Selenium documentation: http://seleniumhq.org/docs/04_webdriver_advanced.html#explicit-waits
 
 Test cases features
@@ -1383,7 +1374,7 @@ applications:
 The failure messages given by most of these assertion methods can be customized
 with the ``msg_prefix`` argument. This string will be prefixed to any failure
 message generated by the assertion. This allows you to provide additional
-details that may help you to identify the location and cause of an failure in
+details that may help you to identify the location and cause of a failure in
 your test suite.
 
 .. method:: SimpleTestCase.assertRaisesMessage(expected_exception, expected_message, callable, *args, **kwargs)
@@ -1702,9 +1693,11 @@ and contents::
     class EmailTest(TestCase):
         def test_send_email(self):
             # Send message.
-            mail.send_mail('Subject here', 'Here is the message.',
+            mail.send_mail(
+                'Subject here', 'Here is the message.',
                 'from@example.com', ['to@example.com'],
-                fail_silently=False)
+                fail_silently=False,
+            )
 
             # Test that one message has been sent.
             self.assertEqual(len(mail.outbox), 1)
